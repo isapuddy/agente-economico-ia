@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agente Económico IA</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f3d36'/%3E%3Cpath d='M7 22l6-6 4 3 8-9' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='25' cy='10' r='2.6' fill='%23e0533f'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Librerías: formato de texto (negritas, listas), seguridad del HTML y gráficas -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+
+<style>
+  /* ==================================================================
+     Paleta "Jade y Quetzal": verde jade profundo (la piedra maya),
+     rojo del pecho del quetzal y dorado del maíz. Si quieres cambiar
+     los colores de toda la página, cámbialos solo aquí.
+     ================================================================== */
+  :root {
+    --selva: #0f3d36;
+    --selva-2: #16504a;
+    --jade: #1d7a66;
+    --jade-oscuro: #155d4e;
+    --jade-tinte: #e2f0eb;
+    --carmesi: #c0392b;
+    --carmesi-tinte: #fbeae7;
+    --maiz: #d29a2f;
+    --fondo: #f4f7f6;
+    --blanco: #ffffff;
+    --tinta: #14201d;
+    --tinta-suave: #5a6965;
+    --borde: #d7e1dd;
+    --texto-lateral: #e4eeea;
+    --texto-lateral-suave: #9dbab1;
+
+    --fuente-titulo: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --fuente: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    font-family: var(--fuente);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--tinta);
+    background: var(--fondo);
+  }
+
+  button, textarea { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--maiz); outline-offset: 2px; }
+
+  .solo-lectores {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 288px minmax(0, 1fr);
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* ==================================================================
+     Barra lateral
+     ================================================================== */
+  .lateral {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    padding: 24px 18px 20px;
+    background: var(--selva);
+    color: var(--texto-lateral);
+    overflow-y: auto;
+  }
+
+  .marca {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 6px;
+  }
+
+  .marca-logo {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--selva-2);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .marca-logo svg { width: 26px; height: 26px; }
+
+  .marca h1 {
+    margin: 0;
+    font-family: var(--fuente-titulo);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: var(--blanco);
+    text-wrap: balance;
+  }
+
+  .marca p {
+    margin: 3px 0 0;
+    font-size: 13px;
+    color: var(--texto-lateral-suave);
+  }
+
+  .bloque h2 {
+    margin: 0 0 10px;
+    padding: 0 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--texto-lateral-suave);
+  }
+
+  .indicadores { display: flex; flex-direction: column; gap: 4px; }
+
+  .indicador {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--texto-lateral);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .indicador:hover { background: var(--selva-2); }
+
+  .indicador-icono {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--blanco);
+  }
+
+  .indicador-icono svg { width: 18px; height: 18px; }
+  .indicador strong { display: block; font-size: 14px; font-weight: 600; color: var(--blanco); }
+  .indicador small { display: block; font-size: 12.5px; color: var(--texto-lateral-suave); }
+
+  .fuentes {
+    margin: 0;
+    padding: 0 6px;
+    list-style: none;
+    font-size: 13.5px;
+  }
+
+  .fuentes li { padding: 4px 0; }
+  .fuentes small { display: block; font-size: 12.5px; color: var(--texto-lateral-suave); }
+
+  .lateral-pie {
+    margin-top: auto;
+    padding: 14px 12px;
+    border-radius: 12px;
+    background: var(--selva-2);
+    font-size: 12.5px;
+    color: var(--texto-lateral-suave);
+  }
+
+  .lateral-pie strong { color: var(--texto-lateral); font-weight: 600; }
+
+  /* ==================================================================
+     Zona principal
+     ================================================================== */
+  .principal {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .encabezado {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 28px;
+    background: var(--blanco);
+    border-bottom: 1px solid var(--borde);
+  }
+
+  .encabezado .marca-logo { display: none; width: 36px; height: 36px; border-radius: 10px; background: var(--selva); }
+  .encabezado .marca-logo svg { width: 21px; height: 21px; }
+
+  .encabezado h2 {
+    margin: 0;
+    font-family: var(--fuente-titulo);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--jade-tinte);
+    color: var(--jade-oscuro);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .estado::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--jade);
+  }
+
+  .estado.desconectado { background: var(--carmesi-tinte); color: var(--carmesi); }
+  .estado.desconectado::before { background: var(--carmesi); }
+
+  .boton-nueva {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 15px;
+    border: 1.5px solid var(--jade);
+    border-radius: 999px;
+    background: var(--blanco);
+    color: var(--jade-oscuro);
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .boton-nueva:hover { background: var(--jade-tinte); }
+  .boton-nueva:disabled { opacity: 0.5; cursor: default; }
+  .boton-nueva svg { width: 15px; height: 15px; }
+
+  .mensajes {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 28px 12px;
+    scroll-behavior: smooth;
+  }
+
+  .columna {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    max-width: 820px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Portada (pantalla inicial) ---------- */
+  .portada { padding: 5vh 0 10px; }
+
+  .portada h2 {
+    max-width: 15ch;
+    margin: 0 0 14px;
+    font-family: var(--fuente-titulo);
+    font-size: clamp(30px, 4.2vw, 44px);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    color: var(--selva);
+    text-wrap: balance;
+  }
+
+  .portada > p {
+    max-width: 56ch;
+    margin: 0 0 28px;
+    font-size: 16px;
+    color: var(--tinta-suave);
+  }
+
+  .ideas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .idea {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 15px 16px;
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    background: var(--blanco);
+    text-align: left;
+    font-size: 14.5px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .idea:hover { border-color: var(--jade); }
+  .idea:disabled { opacity: 0.55; cursor: default; }
+
+  .idea-icono {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: var(--jade-tinte);
+    color: var(--jade-oscuro);
+  }
+
+  .idea-icono svg { width: 18px; height: 18px; }
+
+  /* ---------- Mensajes ---------- */
+  .fila { display: flex; align-items: flex-start; gap: 12px; }
+  .fila.usuario { justify-content: flex-end; }
+
+  .avatar-agente {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--selva);
+  }
+
+  .avatar-agente svg { width: 20px; height: 20px; }
+
+  .burbuja {
+    max-width: min(84%, 680px);
+    padding: 13px 17px 9px;
+    border-radius: 18px;
+  }
+
+  .fila.agente .burbuja {
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    border-top-left-radius: 6px;
+  }
+
+  .fila.usuario .burbuja {
+    background: var(--jade);
+    color: var(--blanco);
+    border-top-right-radius: 6px;
+  }
+
+  .fila.usuario .contenido { white-space: pre-wrap; }
+  .burbuja.con-grafico { width: min(84%, 680px); }
+
+  .burbuja.error {
+    background: var(--carmesi-tinte) !important;
+    border-color: #efc4bd !important;
+    color: #7c241a;
+  }
+
+  .hora { margin-top: 5px; text-align: right; font-size: 11.5px; color: var(--tinta-suave); }
+  .fila.usuario .hora { color: rgba(255, 255, 255, 0.75); }
+
+  /* Formato del texto de las respuestas */
+  .contenido { font-size: 15px; overflow-wrap: anywhere; }
+  .contenido > :first-child { margin-top: 0; }
+  .contenido > :last-child { margin-bottom: 0; }
+  .contenido p { margin: 0 0 0.65em; }
+  .contenido ul, .contenido ol { margin: 0 0 0.65em; padding-left: 1.35em; }
+  .contenido li { margin: 0.3em 0; }
+  .contenido li::marker { color: var(--jade); font-weight: 700; }
+  .contenido strong { font-weight: 700; }
+  .contenido h1, .contenido h2, .contenido h3, .contenido h4 {
+    margin: 0.9em 0 0.4em;
+    font-family: var(--fuente-titulo);
+    font-size: 16.5px;
+    font-weight: 700;
+    color: var(--selva);
+  }
+  .contenido code { padding: 1px 5px; border-radius: 5px; background: var(--jade-tinte); font-size: 13.5px; }
+  .contenido pre { padding: 10px 12px; border-radius: 8px; background: var(--fondo); overflow-x: auto; }
+  .contenido pre code { padding: 0; background: none; }
+  .contenido .tabla-caja { margin: 0 0 0.75em; overflow-x: auto; }
+  .contenido table { border-collapse: collapse; font-size: 14px; min-width: 60%; }
+  .contenido th, .contenido td { padding: 7px 12px; border-bottom: 1px solid var(--borde); text-align: left; }
+  .contenido th { background: var(--jade-tinte); color: var(--selva); font-weight: 600; }
+  .contenido a { color: var(--jade-oscuro); text-underline-offset: 2px; }
+  .contenido hr { border: 0; border-top: 1px solid var(--borde); margin: 0.9em 0; }
+
+  /* ---------- Gráficas ---------- */
+  .grafico {
+    margin: 14px 0 4px;
+    padding: 14px 16px 12px;
+    border-radius: 14px;
+    background: var(--fondo);
+  }
+
+  .grafico figcaption { margin-bottom: 10px; }
+
+  .grafico-titulo {
+    display: block;
+    font-family: var(--fuente-titulo);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--selva);
+  }
+
+  .grafico-unidad { font-size: 12.5px; color: var(--tinta-suave); }
+
+  .resumen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .dato {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 8px;
+    align-items: center;
+    min-width: 150px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: var(--blanco);
+  }
+
+  .dato-punto { width: 9px; height: 9px; border-radius: 50%; }
+  .dato-pais { font-size: 12.5px; color: var(--tinta-suave); }
+
+  .dato-valor {
+    grid-column: 2;
+    font-family: var(--fuente-titulo);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .dato-cambio {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 3px;
+    padding: 1px 7px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .dato-cambio.sube { background: var(--jade-tinte); color: var(--jade-oscuro); }
+  .dato-cambio.baja { background: var(--carmesi-tinte); color: var(--carmesi); }
+  .dato-cambio.igual { background: #eceeed; color: var(--tinta-suave); }
+
+  .lienzo { position: relative; height: 230px; }
+  .grafico .pie { margin-top: 8px; font-size: 11.5px; color: var(--tinta-suave); }
+
+  /* ---------- Indicador "pensando" ---------- */
+  .pensando { display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+
+  .pensando span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--jade);
+    animation: latido 1.2s infinite ease-in-out;
+  }
+
+  .pensando span:nth-child(2) { animation-delay: 0.15s; }
+  .pensando span:nth-child(3) { animation-delay: 0.3s; }
+  .pensando em { margin-left: 8px; font-style: normal; font-size: 13.5px; color: var(--tinta-suave); }
+
+  @keyframes latido {
+    0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+  }
+
+  /* ---------- Caja para escribir ---------- */
+  .zona-escribir { padding: 10px 28px 14px; }
+
+  .compositor {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 7px 7px 7px 20px;
+    border: 1.5px solid var(--borde);
+    border-radius: 26px;
+    background: var(--blanco);
+    transition: border-color 0.15s;
+  }
+
+  .compositor:focus-within { border-color: var(--jade); }
+
+  .compositor textarea {
+    flex: 1;
+    min-height: 38px;
+    max-height: 160px;
+    padding: 8px 0;
+    border: 0;
+    outline: none;
+    resize: none;
+    background: transparent;
+    line-height: 1.45;
+  }
+
+  .compositor textarea::placeholder { color: #8a9793; }
+
+  .boton-enviar {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--jade);
+    color: var(--blanco);
+    cursor: pointer;
+  }
+
+  .boton-enviar:hover { background: var(--jade-oscuro); }
+  .boton-enviar svg { width: 18px; height: 18px; }
+  .boton-enviar:disabled { background: #b9cdc6; cursor: default; }
+
+  .ayuda {
+    max-width: 820px;
+    margin: 8px auto 0;
+    font-size: 11.5px;
+    color: var(--tinta-suave);
+    text-align: center;
+  }
+
+  /* ---------- Pantallas pequeñas ---------- */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .lateral { display: none; }
+    .encabezado { padding: 12px 16px; }
+    .encabezado .marca-logo { display: grid; }
+    .boton-nueva span { display: none; }
+    .boton-nueva { padding: 8px 10px; }
+    .mensajes { padding: 20px 16px 10px; }
+    .zona-escribir { padding: 8px 12px 12px; }
+    .ideas { grid-template-columns: 1fr; }
+    .atajos { display: none; }
+    .burbuja, .burbuja.con-grafico { max-width: 90%; }
+    .burbuja.con-grafico { width: 90%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pensando span { animation: none; opacity: 0.6; }
+    .mensajes { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Íconos -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ico-logo" viewBox="0 0 32 32">
+    <path d="M6 23l6.5-6.5 4.5 3.5 8.5-10" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="25.5" cy="10" r="3" fill="#e0533f"/>
+  </symbol>
+  <symbol id="ico-poblacion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9" cy="8" r="3.2"/><path d="M3 19.5c.6-3.3 3-5 6-5s5.4 1.7 6 5"/>
+    <circle cx="17" cy="9" r="2.4"/><path d="M16.5 14.6c2.4.2 4 1.7 4.5 4.4"/>
+  </symbol>
+  <symbol id="ico-pib" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M14.8 8.8c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.9-2.8 2.2 0 3 5.7 1.6 5.7 4.6 0 1.3-1.3 2.3-2.9 2.3-1.3 0-2.4-.6-2.9-1.6M12 5.8v1.6M12 16.5v1.7"/>
+  </symbol>
+  <symbol id="ico-exportaciones" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 15h18l-2.2 4.5H5.2z"/><path d="M6 15V9h7v6"/><path d="M13 11h4l1.5 4"/><path d="M9.5 9V5.5"/>
+  </symbol>
+  <symbol id="ico-educacion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2.5 9 12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11v4.5c1.6 1.5 3.4 2.2 5.5 2.2s3.9-.7 5.5-2.2V11"/><path d="M21.5 9v5"/>
+  </symbol>
+  <symbol id="ico-cambio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 8h13l-3.5-3.5"/><path d="M20 16H7l3.5 3.5"/>
+  </symbol>
+  <symbol id="ico-nuevo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <path d="M12 5v14M5 12h14"/>
+  </symbol>
+  <symbol id="ico-enviar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 19V5"/><path d="M5.5 11.5 12 5l6.5 6.5"/>
+  </symbol>
+</svg>
+
+<div class="app">
+
+  <!-- ===================== Barra lateral ===================== -->
+  <aside class="lateral" aria-label="Información del agente">
+    <div class="marca">
+      <div class="marca-logo"><svg aria-hidden="true"><use href="#ico-logo"/></svg></div>
+      <div>
+        <h1>Agente Económico IA</h1>
+        <p>Indicadores de Guatemala y el mundo</p>
+      </div>
+    </div>
+
+    <section class="bloque">
+      <h2>Pregúntame por</h2>
+      <div class="indicadores" id="indicadores"></div>
+    </section>
+
+    <section class="bloque">
+      <h2>De dónde vienen los datos</h2>
+      <ul class="fuentes">
+        <li>Banco Mundial<small>Series anuales desde el año 2000</small></li>
+        <li>ExchangeRate-API<small>Tipo de cambio del día</small></li>
+      </ul>
+    </section>
+
+    <div class="lateral-pie">
+      <strong>Recuerdo tus últimos 10 mensajes,</strong> así que puedes hacer preguntas de seguimiento como «¿y en México?».
+    </div>
+  </aside>
+
+  <!-- ===================== Chat ===================== -->
+  <main class="principal">
+    <header class="encabezado">
+      <div class="marca-logo"><svg aria-hidden="true"><use href="#ico-logo"/></svg></div>
+      <h2>Conversación</h2>
+      <span class="estado" id="estado">En línea</span>
+      <button class="boton-nueva" id="boton-nueva" type="button" aria-label="Nueva conversación">
+        <svg aria-hidden="true"><use href="#ico-nuevo"/></svg><span>Nueva conversación</span>
+      </button>
+    </header>
+
+    <div class="mensajes" id="mensajes">
+      <div class="columna" id="columna" aria-live="polite"></div>
+    </div>
+
+    <div class="zona-escribir">
+      <form class="compositor" id="formulario">
+        <label for="entrada" class="solo-lectores">Escribe tu pregunta</label>
+        <textarea id="entrada" rows="1" maxlength="1500" placeholder="Escribe tu pregunta sobre economía..."></textarea>
+        <button class="boton-enviar" id="boton-enviar" type="submit" aria-label="Enviar pregunta" disabled>
+          <svg aria-hidden="true"><use href="#ico-enviar"/></svg>
+        </button>
+      </form>
+      <p class="ayuda"><span class="atajos">Enter para enviar, Shift + Enter para un salto de línea. </span>El agente puede equivocarse: verifica los datos importantes.</p>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ------------------------------------------------------------------
+  // Contenido editable
+  // ------------------------------------------------------------------
+  const INDICADORES = [
+    { icono: "poblacion", nombre: "Población total", detalle: "Personas por país",
+      pregunta: "¿Cuál es la población de Guatemala y cómo ha cambiado?" },
+    { icono: "pib", nombre: "PIB per cápita", detalle: "Dólares por persona",
+      pregunta: "¿Cómo ha evolucionado el PIB per cápita de Guatemala?" },
+    { icono: "exportaciones", nombre: "Exportaciones", detalle: "Bienes y servicios",
+      pregunta: "¿Cómo han cambiado las exportaciones de Guatemala?" },
+    { icono: "educacion", nombre: "Gasto en educación", detalle: "Porcentaje del PIB",
+      pregunta: "¿Cuánto invierte Guatemala en educación como porcentaje del PIB?" },
+    { icono: "cambio", nombre: "Tipo de cambio", detalle: "Monedas del día",
+      pregunta: "¿A cuánto está el dólar en quetzales hoy?" },
+  ];
+
+  const IDEAS = [
+    { icono: "pib", texto: "Compara el PIB per cápita de Guatemala, El Salvador y Honduras" },
+    { icono: "poblacion", texto: "¿Cómo ha crecido la población de Guatemala desde el 2000?" },
+    { icono: "educacion", texto: "¿Cuánto gasta Costa Rica en educación?" },
+    { icono: "cambio", texto: "¿A cuánto está el dólar en quetzales hoy?" },
+  ];
+
+  const PAISES = {
+    GTM: "Guatemala", SLV: "El Salvador", HND: "Honduras", NIC: "Nicaragua",
+    CRI: "Costa Rica", PAN: "Panamá", BLZ: "Belice", MEX: "México",
+    USA: "Estados Unidos", CAN: "Canadá", DOM: "República Dominicana",
+    CUB: "Cuba", COL: "Colombia", VEN: "Venezuela", ECU: "Ecuador",
+    PER: "Perú", BOL: "Bolivia", CHL: "Chile", ARG: "Argentina",
+    URY: "Uruguay", PRY: "Paraguay", BRA: "Brasil", ESP: "España",
+    DEU: "Alemania", FRA: "Francia", GBR: "Reino Unido", ITA: "Italia",
+    CHN: "China", JPN: "Japón", IND: "India", KOR: "Corea del Sur",
+  };
+
+  // Colores de las líneas: jade, maíz, quetzal, azul lago y gris
+  const COLORES_SERIE = ["#1d7a66", "#d29a2f", "#c0392b", "#2c5d8a", "#6b7471"];
+
+  // ------------------------------------------------------------------
+  // Elementos de la página y estado
+  // ------------------------------------------------------------------
+  const zonaMensajes = document.getElementById("mensajes");
+  const columna = document.getElementById("columna");
+  const formulario = document.getElementById("formulario");
+  const entrada = document.getElementById("entrada");
+  const botonEnviar = document.getElementById("boton-enviar");
+  const botonNueva = document.getElementById("boton-nueva");
+  const estado = document.getElementById("estado");
+
+  let ocupado = false;
+  let idConversacion = nuevoId();
+
+  if (window.Chart) {
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.color = "#5a6965";
+  }
+  if (window.marked) marked.use({ gfm: true, breaks: true });
+
+  // ------------------------------------------------------------------
+  // Utilidades
+  // ------------------------------------------------------------------
+  function nuevoId() {
+    if (window.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+    return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+  }
+
+  function icono(nombre) {
+    return `<svg aria-hidden="true"><use href="#ico-${nombre}"/></svg>`;
+  }
+
+  function horaActual() {
+    return new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
+
+  function escaparHTML(texto) {
+    const div = document.createElement("div");
+    div.textContent = texto;
+    return div.innerHTML;
+  }
+
+  function convertirFormato(texto) {
+    if (window.marked && window.DOMPurify) {
+      return DOMPurify.sanitize(marked.parse(texto || ""))
+        .replace(/<table>/g, '<div class="tabla-caja"><table>')
+        .replace(/<\/table>/g, "</table></div>");
+    }
+    return escaparHTML(texto || "").replace(/\n/g, "<br>");
+  }
+
+  function nombrePais(codigo) { return PAISES[codigo] || codigo || ""; }
+
+  function unirNombres(nombres) {
+    if (nombres.length <= 1) return nombres.join("");
+    return nombres.slice(0, -1).join(", ") + " y " + nombres[nombres.length - 1];
+  }
+
+  const esDolares = (unidad) => (unidad || "").includes("USD");
+  const esPorcentaje = (unidad) => (unidad || "").includes("%");
+
+  function numero(valor, decimales) {
+    return valor.toLocaleString("es-GT", { maximumFractionDigits: decimales });
+  }
+
+  // Formato corto: 17.2 mil M, 18.1 M, US$ 5,797
+  function formatoCorto(valor, unidad) {
+    if (esPorcentaje(unidad)) return numero(valor, 1) + "%";
+    const abs = Math.abs(valor);
+    let texto;
+    if (abs >= 1e9) texto = numero(valor / 1e9, 1) + " mil M";
+    else if (abs >= 1e6) texto = numero(valor / 1e6, 1) + " M";
+    else texto = numero(valor, abs >= 100 ? 0 : 2);
+    return (esDolares(unidad) ? "US$ " : "") + texto;
+  }
+
+  // Formato completo para el recuadro que aparece al pasar el mouse
+  function formatoLargo(valor, unidad) {
+    if (esPorcentaje(unidad)) return numero(valor, 2) + "% del PIB";
+    if (esDolares(unidad)) return "US$ " + numero(valor, 2);
+    return numero(valor, 0) + (unidad ? " " + unidad : "");
+  }
+
+  function bajarAlFinal() { zonaMensajes.scrollTop = zonaMensajes.scrollHeight; }
+
+  function marcarEstado(conectado) {
+    estado.textContent = conectado ? "En línea" : "Sin conexión";
+    estado.classList.toggle("desconectado", !conectado);
+  }
+
+  // ------------------------------------------------------------------
+  // Barra lateral y portada
+  // ------------------------------------------------------------------
+  function construirLateral() {
+    const contenedor = document.getElementById("indicadores");
+    INDICADORES.forEach((ind) => {
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.className = "indicador";
+      boton.innerHTML =
+        `<span class="indicador-icono">${icono(ind.icono)}</span>` +
+        `<span><strong>${ind.nombre}</strong><small>${ind.detalle}</small></span>`;
+      // Escribe una pregunta de ejemplo en la caja para que la puedas editar
+      boton.addEventListener("click", () => {
+        if (ocupado) return;
+        entrada.value = ind.pregunta;
+        ajustarAltura();
+        actualizarBoton();
+        entrada.focus();
+        entrada.setSelectionRange(entrada.value.length, entrada.value.length);
+      });
+      contenedor.appendChild(boton);
+    });
+  }
+
+  function mostrarPortada() {
+    columna.innerHTML = "";
+    const portada = document.createElement("section");
+    portada.className = "portada";
+    portada.innerHTML =
+      "<h2>¿Qué quieres saber de la economía hoy?</h2>" +
+      "<p>Consulto datos del Banco Mundial y el tipo de cambio del día, te explico cómo han cambiado y te muestro la tendencia en una gráfica.</p>";
+
+    const ideas = document.createElement("div");
+    ideas.className = "ideas";
+    IDEAS.forEach((idea) => {
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.className = "idea";
+      boton.innerHTML = `<span class="idea-icono">${icono(idea.icono)}</span>`;
+      const texto = document.createElement("span");
+      texto.textContent = idea.texto;
+      boton.appendChild(texto);
+      boton.addEventListener("click", () => enviarMensaje(idea.texto));
+      ideas.appendChild(boton);
+    });
+    portada.appendChild(ideas);
+    columna.appendChild(portada);
+  }
+
+  function quitarPortada() {
+    const portada = columna.querySelector(".portada");
+    if (portada) portada.remove();
+  }
+
+  // ------------------------------------------------------------------
+  // Mensajes
+  // ------------------------------------------------------------------
+  function crearFila(rol) {
+    const fila = document.createElement("div");
+    fila.className = "fila " + rol;
+
+    if (rol === "agente") {
+      const avatar = document.createElement("div");
+      avatar.className = "avatar-agente";
+      avatar.innerHTML = icono("logo");
+      fila.appendChild(avatar);
+    }
+
+    const burbuja = document.createElement("div");
+    burbuja.className = "burbuja";
+    const contenido = document.createElement("div");
+    contenido.className = "contenido";
+    burbuja.appendChild(contenido);
+    fila.appendChild(burbuja);
+    columna.appendChild(fila);
+    return { fila, burbuja, contenido };
+  }
+
+  function agregarHora(burbuja) {
+    const hora = document.createElement("div");
+    hora.className = "hora";
+    hora.textContent = horaActual();
+    burbuja.appendChild(hora);
+  }
+
+  function agregarMensajeUsuario(texto) {
+    const { burbuja, contenido } = crearFila("usuario");
+    contenido.textContent = texto;
+    agregarHora(burbuja);
+    bajarAlFinal();
+  }
+
+  function agregarMensajeAgente(texto, graficos) {
+    const { burbuja, contenido } = crearFila("agente");
+    contenido.innerHTML = convertirFormato(texto);
+    const grupos = agruparGraficos(graficos || []);
+    if (grupos.length) {
+      burbuja.classList.add("con-grafico");
+      grupos.forEach((grupo) => dibujarGrafico(burbuja, grupo));
+    }
+    agregarHora(burbuja);
+    bajarAlFinal();
+  }
+
+  function agregarMensajeError(texto) {
+    const { burbuja, contenido } = crearFila("agente");
+    burbuja.classList.add("error");
+    contenido.textContent = texto;
+    agregarHora(burbuja);
+    bajarAlFinal();
+  }
+
+  function mostrarPensando() {
+    const { fila, contenido } = crearFila("agente");
+    contenido.innerHTML =
+      '<div class="pensando"><span></span><span></span><span></span><em>Consultando datos...</em></div>';
+    bajarAlFinal();
+    return fila;
+  }
+
+  // ------------------------------------------------------------------
+  // Gráficas
+  // ------------------------------------------------------------------
+  // Si el agente consultó el mismo indicador para varios países, se
+  // juntan en una sola gráfica para compararlos.
+  function agruparGraficos(graficos) {
+    const grupos = new Map();
+    graficos.forEach((g) => {
+      if (!g || !Array.isArray(g.anios) || !g.anios.length) return;
+      const clave = (g.indicador || "") + "|" + (g.unidad || "");
+      if (!grupos.has(clave)) grupos.set(clave, { indicador: g.indicador, unidad: g.unidad, series: [] });
+      const grupo = grupos.get(clave);
+      if (!grupo.series.some((s) => s.pais === g.pais)) grupo.series.push(g);
+    });
+    return Array.from(grupos.values());
+  }
+
+  // Tarjetita con el último dato de cada país y su variación
+  function crearDato(serie, color, unidad) {
+    const n = serie.valores.length;
+    const ultimo = serie.valores[n - 1];
+    const dato = document.createElement("div");
+    dato.className = "dato";
+
+    const punto = document.createElement("span");
+    punto.className = "dato-punto";
+    punto.style.background = color;
+    const pais = document.createElement("span");
+    pais.className = "dato-pais";
+    pais.textContent = `${nombrePais(serie.pais)}, ${serie.anios[n - 1]}`;
+    const valor = document.createElement("span");
+    valor.className = "dato-valor";
+    valor.textContent = formatoCorto(ultimo, unidad);
+    dato.append(punto, pais, valor);
+
+    if (n >= 2 && serie.valores[n - 2]) {
+      const anterior = serie.valores[n - 2];
+      const cambio = ((ultimo - anterior) / Math.abs(anterior)) * 100;
+      const etiqueta = document.createElement("span");
+      const tipo = Math.abs(cambio) < 0.05 ? "igual" : cambio > 0 ? "sube" : "baja";
+      const flecha = tipo === "igual" ? "=" : tipo === "sube" ? "▲" : "▼";
+      etiqueta.className = "dato-cambio " + tipo;
+      etiqueta.textContent = `${flecha} ${numero(Math.abs(cambio), 1)}% vs ${serie.anios[n - 2]}`;
+      dato.appendChild(etiqueta);
+    }
+    return dato;
+  }
+
+  function dibujarGrafico(burbuja, grupo) {
+    const figura = document.createElement("figure");
+    figura.className = "grafico";
+
+    const paises = unirNombres(grupo.series.map((s) => nombrePais(s.pais)));
+    const titulo = document.createElement("figcaption");
+    titulo.innerHTML = '<span class="grafico-titulo"></span><span class="grafico-unidad"></span>';
+    titulo.querySelector(".grafico-titulo").textContent = `${grupo.indicador}: ${paises}`;
+    titulo.querySelector(".grafico-unidad").textContent = grupo.unidad;
+    figura.appendChild(titulo);
+
+    const resumen = document.createElement("div");
+    resumen.className = "resumen";
+    grupo.series.forEach((serie, i) =>
+      resumen.appendChild(crearDato(serie, COLORES_SERIE[i % COLORES_SERIE.length], grupo.unidad))
+    );
+    figura.appendChild(resumen);
+
+    const todosLosAnios = grupo.series.flatMap((s) => s.anios);
+    const anioMin = Math.min(...todosLosAnios);
+    const anioMax = Math.max(...todosLosAnios);
+    const pie = document.createElement("div");
+    pie.className = "pie";
+    pie.textContent = `Fuente: Banco Mundial, ${anioMin} a ${anioMax}.`;
+
+    if (!window.Chart) {
+      figura.appendChild(pie);
+      burbuja.appendChild(figura);
+      return;
+    }
+
+    const caja = document.createElement("div");
+    caja.className = "lienzo";
+    const lienzo = document.createElement("canvas");
+    lienzo.setAttribute("role", "img");
+    lienzo.setAttribute("aria-label", `${grupo.indicador}: ${paises}, de ${anioMin} a ${anioMax}`);
+    caja.appendChild(lienzo);
+    figura.append(caja, pie);
+    burbuja.appendChild(figura);
+
+    const variasSeries = grupo.series.length > 1;
+
+    new Chart(lienzo, {
+      type: "line",
+      data: {
+        datasets: grupo.series.map((serie, i) => {
+          const color = COLORES_SERIE[i % COLORES_SERIE.length];
+          return {
+            label: nombrePais(serie.pais),
+            data: serie.anios.map((anio, j) => ({ x: anio, y: serie.valores[j] })),
+            borderColor: color,
+            backgroundColor: variasSeries ? color : "rgba(29, 122, 102, 0.10)",
+            pointBackgroundColor: color,
+            fill: !variasSeries,
+            borderWidth: 2.2,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            tension: 0.3,
+            clip: false,
+          };
+        }),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { left: 2, right: 8, top: 4 } },
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: {
+            type: "linear",
+            min: anioMin,
+            max: anioMax,
+            grid: { display: false },
+            border: { color: "#c7d3cf" },
+            ticks: {
+              precision: 0,
+              maxRotation: 0,
+              callback: (v) => (Number.isInteger(v) ? String(v) : ""),
+            },
+          },
+          y: {
+            grid: { color: "#e3eae7" },
+            border: { display: false },
+            ticks: { maxTicksLimit: 6, callback: (v) => formatoCorto(v, grupo.unidad) },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#0f3d36",
+            padding: 10,
+            cornerRadius: 8,
+            callbacks: {
+              title: (items) => String(items[0].parsed.x),
+              label: (item) => ` ${item.dataset.label}: ${formatoLargo(item.parsed.y, grupo.unidad)}`,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // Envío al servidor
+  // ------------------------------------------------------------------
+  function bloquear(valor) {
+    ocupado = valor;
+    entrada.disabled = valor;
+    botonNueva.disabled = valor;
+    document.querySelectorAll(".idea, .indicador").forEach((b) => (b.disabled = valor));
+    actualizarBoton();
+  }
+
+  function actualizarBoton() { botonEnviar.disabled = ocupado || !entrada.value.trim(); }
+
+  function ajustarAltura() {
+    entrada.style.height = "auto";
+    entrada.style.height = Math.min(entrada.scrollHeight, 160) + "px";
+  }
+
+  async function enviarMensaje(texto) {
+    texto = (texto || "").trim();
+    if (!texto || ocupado) return;
+
+    quitarPortada();
+    agregarMensajeUsuario(texto);
+    entrada.value = "";
+    ajustarAltura();
+    bloquear(true);
+    const pensando = mostrarPensando();
+
+    try {
+      const respuesta = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mensaje: texto, conversacion: idConversacion }),
+      });
+      const datos = await respuesta.json().catch(() => ({}));
+      pensando.remove();
+      marcarEstado(true);
+
+      if (!respuesta.ok || datos.error) {
+        agregarMensajeError(datos.error || "El agente no pudo responder. Intenta de nuevo.");
+      } else {
+        agregarMensajeAgente(datos.respuesta, datos.graficos);
+      }
+    } catch (e) {
+      pensando.remove();
+      marcarEstado(false);
+      agregarMensajeError("No hay conexión con el agente. Revisa tu internet o recarga la página.");
+    } finally {
+      bloquear(false);
+      entrada.focus();
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Eventos
+  // ------------------------------------------------------------------
+  formulario.addEventListener("submit", (e) => {
+    e.preventDefault();
+    enviarMensaje(entrada.value);
+  });
+
+  entrada.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      enviarMensaje(entrada.value);
+    }
+  });
+
+  entrada.addEventListener("input", () => { ajustarAltura(); actualizarBoton(); });
+
+  botonNueva.addEventListener("click", () => {
+    if (ocupado) return;
+    const anterior = idConversacion;
+    idConversacion = nuevoId();
+    fetch("/api/nueva-conversacion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversacion: anterior }),
+    }).catch(() => {});
+    mostrarPortada();
+    entrada.focus();
+  });
+
+  construirLateral();
+  mostrarPortada();
+  entrada.focus();
+</script>
+</body>
+</html>
