@@ -1,0 +1,34 @@
+# Diseño "Jade y Quetzal" del Agente Económico IA
+# Verde jade (la piedra maya), rojo quetzal y dorado maíz
+
+[theme]
+base = "light"
+primaryColor = "#1d7a66"
+backgroundColor = "#f4f7f6"
+secondaryBackgroundColor = "#e2f0eb"
+textColor = "#14201d"
+borderColor = "#d7e1dd"
+linkColor = "#155d4e"
+greenColor = "#1d7a66"
+redColor = "#c0392b"
+font = "Figtree:https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap"
+headingFont = "Bricolage Grotesque:https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap"
+baseRadius = "0.7rem"
+buttonRadius = "full"
+showWidgetBorder = true
+metricValueFontSize = "1.6rem"
+metricValueFontWeight = 700
+chartCategoricalColors = ["#1d7a66", "#d29a2f", "#c0392b", "#2c5d8a", "#6b7471"]
+
+[theme.sidebar]
+backgroundColor = "#0f3d36"
+secondaryBackgroundColor = "#16504a"
+textColor = "#e4eeea"
+primaryColor = "#d29a2f"
+borderColor = "#2f6d64"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
