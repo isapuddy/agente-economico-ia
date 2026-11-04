@@ -4,3 +4,4 @@ requests
 matplotlib
 flask
 gunicorn
+streamlit>=1.50
