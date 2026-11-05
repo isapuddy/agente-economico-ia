@@ -9,14 +9,18 @@
 #
 # NO modifica economic_agent.py ni economic_tools.py: solo los usa.
 # Los colores y las fuentes están en el archivo .streamlit/config.toml
+# Cada pregunta y respuesta se guarda en Supabase (tabla "conversaciones")
+# si se configuran SUPABASE_URL y SUPABASE_KEY.
 
 
 import os
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import altair as alt
 import pandas as pd
+import requests
 import streamlit as st
 
 st.set_page_config(
@@ -32,14 +36,24 @@ from basic_memory import BasicMemory
 from economic_agent import EconomicAgent  # al importarlo se lee el archivo .env
 
 # ----------------------------------------------------------------------
-# Clave de Groq: en tu laptop viene del archivo .env; en Streamlit Cloud
-# viene de la sección "Secrets" de la app.
+# Claves: en tu laptop vienen del archivo .env; en Streamlit Cloud vienen
+# de la sección "Secrets" de la app.
 # ----------------------------------------------------------------------
-if not os.environ.get("GROQ_API_KEY"):
-    try:
-        os.environ["GROQ_API_KEY"] = st.secrets["GROQ_API_KEY"]
-    except Exception:
-        pass
+def leer_secreto(nombre):
+    valor = os.environ.get(nombre)
+    if not valor:
+        try:
+            valor = st.secrets[nombre]
+        except Exception:
+            valor = None
+    return (valor or "").strip()
+
+
+os.environ["GROQ_API_KEY"] = leer_secreto("GROQ_API_KEY")
+SUPABASE_URL = leer_secreto("SUPABASE_URL").rstrip("/")
+SUPABASE_KEY = leer_secreto("SUPABASE_KEY")
+SUPABASE_TABLA = "conversaciones"
+SUPABASE_ACTIVO = bool(SUPABASE_URL and SUPABASE_KEY)
 
 if not os.environ.get("GROQ_API_KEY"):
     st.error(
@@ -115,6 +129,14 @@ st.markdown(
     font-size: .8rem !important; line-height: 1.45; color: #9dbab1;
   }
   .nota-lateral strong { color: #e4eeea; }
+  .estado-supabase {
+    display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 8px 12px;
+    border-radius: 999px; background: #16504a; font-size: .8rem; font-weight: 600; color: #e4eeea;
+  }
+  .estado-supabase span { width: 8px; height: 8px; border-radius: 50%; background: #9dbab1; flex: none; }
+  .estado-supabase.ok span { background: #3ecf8e; }
+  .estado-supabase.error span { background: #e0533f; }
+  p.aviso-datos { margin: 6px 4px 0 !important; font-size: .74rem !important; color: #9dbab1 !important; }
 
   /* Botones de indicadores en la barra lateral */
   .st-key-indicadores button {
@@ -221,6 +243,8 @@ def iniciar_estado():
     st.session_state.historial = []
     st.session_state.envios = []
     st.session_state.pendiente = None
+    st.session_state.id_sesion = str(uuid.uuid4())   # identifica la conversación en Supabase
+    st.session_state.setdefault("supabase_ok", None)  # None = aún no se ha guardado nada
 
 
 if "agente" not in st.session_state:
@@ -449,6 +473,44 @@ def responder(pregunta):
         })
     mostrar_mensaje(historial[-1], len(historial) - 1)
 
+    if not error:
+        guardar_en_supabase(pregunta, respuesta, agente.graficos)
+
+
+# ----------------------------------------------------------------------
+# Conexión con Supabase: guarda cada pregunta y respuesta en la tabla
+# "conversaciones" usando la API REST de Supabase.
+# ----------------------------------------------------------------------
+def guardar_en_supabase(pregunta, respuesta, graficos):
+    if not SUPABASE_ACTIVO:
+        return
+
+    encabezados = {
+        "apikey": SUPABASE_KEY,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+    }
+    # Las claves antiguas de Supabase (empiezan con "eyJ") también van en Authorization
+    if SUPABASE_KEY.startswith("eyJ"):
+        encabezados["Authorization"] = f"Bearer {SUPABASE_KEY}"
+
+    consultados = sorted({f'{g["indicador"]} ({nombre_pais(g["pais"])})' for g in graficos or []})
+    fila = {
+        "sesion": st.session_state.id_sesion,
+        "pregunta": pregunta,
+        "respuesta": respuesta,
+        "indicadores": ", ".join(consultados) or None,
+    }
+
+    try:
+        r = requests.post(f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLA}", headers=encabezados, json=fila, timeout=10)
+        st.session_state.supabase_ok = r.status_code < 300
+        if not st.session_state.supabase_ok:
+            print(f"Supabase no guardó la conversación ({r.status_code}): {r.text[:300]}")
+    except Exception as e:
+        st.session_state.supabase_ok = False
+        print(f"No se pudo conectar con Supabase: {e}")
+
 
 # ----------------------------------------------------------------------
 # Barra lateral
@@ -493,6 +555,7 @@ with st.sidebar:
 """,
         unsafe_allow_html=True,
     )
+    estado_supabase = st.empty()   # se llena al final, cuando ya se intentó guardar
 
 
 # ----------------------------------------------------------------------
@@ -526,3 +589,19 @@ for indice, mensaje in enumerate(st.session_state.historial):
 
 if pregunta:
     responder(pregunta)
+
+# Estado de la conexión con Supabase en la barra lateral
+if not SUPABASE_ACTIVO:
+    clase, texto = "apagado", "Supabase sin configurar"
+elif st.session_state.supabase_ok is False:
+    clase, texto = "error", "Supabase: no se pudo guardar"
+elif st.session_state.supabase_ok:
+    clase, texto = "ok", "Guardado en Supabase"
+else:
+    clase, texto = "ok", "Conectado a Supabase"
+estado_supabase.markdown(
+    f'<div class="estado-supabase {clase}"><span></span>{texto}</div>'
+    + ('<p class="aviso-datos">Las preguntas se guardan de forma anónima para fines del proyecto.</p>'
+       if SUPABASE_ACTIVO else ""),
+    unsafe_allow_html=True,
+)
